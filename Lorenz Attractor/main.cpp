@@ -10,7 +10,11 @@
 #include <OpenGL/OpenGL.h>
 #include <GLUT/GLUT.h>
 #include <random>
-#define A	3.5699
+#define P	10.0
+#define R	28.0
+#define B	8.0/3.0
+#define EPS	0.001
+#define T	100
 using namespace std;
 
 random_device rnd;     // 非決定的な乱数生成器
@@ -18,19 +22,32 @@ mt19937 mt(rnd());  // メルセンヌ・ツイスタの32ビット版、引数�
 uniform_real_distribution<> unif(0.0, 1.0);   // [0.0,1.0]上一様に分布させる
 normal_distribution<> gauss(0.0, 1.0);   // 平均0.0、標準偏差1.0で分布させる
 
-int winh = 800; int winw = 1000;
-double yMin = -1.0; double yMax = 1.0;
-int itrNum = 3000; int itrCnt = 0;
-int seqNum = 1000;
-double **lyp;
-double *x;
+int winh = 800;
+int winw = 1000;
+double xMin = -20.0;
+double xMax = 20.0;
+double yMin = -20.0;
+double yMax = 20.0;
+double zMin = 0.0;
+double zMax = 40.0;
+int itrNum = T / EPS;
+double *x, *y, *z;
+double inix = 1.0;
+double iniy = 1.0;
+double iniz = 1.0;
+int r = 0;
+int cnt = 0;
 
-double f(double u){
-	return A * u * (1.0-u);
+double dx(double x1, double y1, double z1){
+	return -P * x1 + P * y1;
 }
-double df(double u){
-	return A * (1.0 - 2.0*u);
+double dy(double x1, double y1, double z1){
+	return -x1 * z1 + R * x1 - y1;
 }
+double dz(double x1, double y1, double z1){
+	return x1 * y1 - B * z1;
+}
+
 
 /*--For OpenGL-------------------------------------------------------------------------*/
 void idle(void){
@@ -41,47 +58,87 @@ void setup(void) {
 }
 void resize(int width, int height) {
 	glViewport(0, 0, width, height);
-	//	glMatrixMode(GL_PROJECTION);
-	//	glLoadIdentity();
-	//	gluPerspective(45.0,
-	//				   (double)width/height,
-	//				   0.1,
-	//				   100.0);
-	//	glMatrixMode(GL_MODELVIEW);
-	//	glLoadIdentity();
-	//	gluLookAt(0.0, 0.0, 2.5,       //Position of Camera
-	//			  0.0, 0.0, 0.0,        //Position of Object
-	//			  0.0, 1.0, 0.0);       //Upward direction of Camera
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45.0,
+				   (double)width/height,
+				   1.0,
+				   100.0);
+	gluLookAt(0.0, 0.0, 2.5,       //Position of Camera
+			  0.0, 0.0, 0.0,        //Position of Object
+			  0.0, 1.0, 0.0);       //Upward direction of Camera
+	glMatrixMode(GL_MODELVIEW);
 }
 void timer(int value) {
-	if(itrCnt % 10 == 0) cout << "timer: " << itrCnt << endl;
 	glutPostRedisplay();
-	if(itrCnt < itrNum) glutTimerFunc(1 , timer , 0);
+	glutTimerFunc(1 , timer , 0);
+	if(cnt < itrNum) cnt++;
+}
+void mouse(int button, int state, int x, int y)
+{
+	switch (button) {
+		case GLUT_LEFT_BUTTON:
+			printf("left");
+			break;
+		case GLUT_MIDDLE_BUTTON:
+			printf("middle");
+			break;
+		case GLUT_RIGHT_BUTTON:
+			printf("right");
+			break;
+		default:
+			break;
+	}
+	
+	printf(" button is ");
+	
+	switch (state) {
+		case GLUT_UP:
+			printf("up");
+			break;
+		case GLUT_DOWN:
+			printf("down");
+			break;
+		default:
+			break;
+	}
+	
+	printf(" at (%d, %d)\n", x, y);
 }
 
 /*--Display func-------------------------------------------------------------------------*/
 void display(void){
 	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	//	glutWireTeapot(0.5);
 	
+	glLoadIdentity();
+	gluLookAt(0.0, 0.0, 2.5,
+			  0.0, 0.0, 0.0,
+			  0.0, 1.0, 0.0);
+	glRotated((double)r, 0.0, 1.0, 0.0);
+	if (r >= 360) r = 0;
+
 	glColor3d(0.0, 0.0, 0.0);	//Black
-	glBegin(GL_LINES);
-	//x-axis
-	glVertex2d(-1.0, 0.0);
-	glVertex2d(1.0, 0.0);
-	//y-axis
-	glVertex2d(0.0, -1.0);
-	glVertex2d(0.0, 1.0);
-	glEnd();
+//	glutWireTeapot(0.5);
+//	glBegin(GL_LINES);
+//	//x-axis
+//	glVertex2d(-1.0, 0.0);
+//	glVertex2d(1.0, 0.0);
+//	//y-axis
+//	glVertex2d(0.0, -1.0);
+//	glVertex2d(0.0, 1.0);
+//	glEnd();
 	
 	//trajectoryの描画
-	for(int k = 0; k < seqNum; k++){
-		glColor3d(sin(0.1*k), cos(0.3*k), cos(0.2*k));
-		glBegin(GL_LINE_STRIP);
-		for(int i = 0; i < itrCnt; i++){
-			glVertex2d(-1.0 + 2.0*i/itrNum, -1.0 + 2.0*(lyp[k][i]-yMin)/(yMax-yMin));
-		}
+	for(int i = 1; i < cnt; i++){
+		glColor3d(0.2, cos((double)i/(double)itrNum), sin((double)i/(double)itrNum));
+		glBegin(GL_LINES);
+			glVertex3d(1.0-2.0*(x[i-1]-xMin)/(xMax-xMin),
+					   1.0-2.0*(y[i-1]-yMin)/(yMax-yMin),
+					   1.0-2.0*(z[i-1]-zMin)/(zMax-zMin));
+			glVertex3d(1.0-2.0*(x[i]-xMin)/(xMax-xMin),
+					   1.0-2.0*(y[i]-yMin)/(yMax-yMin),
+					   1.0-2.0*(z[i]-zMin)/(zMax-zMin));
 		glEnd();
 	}
 	
@@ -91,21 +148,19 @@ void display(void){
 
 /*--Main func-------------------------------------------------------------------------*/
 int main(int argc, char * argv[]) {
-	/*--Initialize-------*/
-	lyp = (double **)calloc(seqNum, sizeof(double *));
-	for(int k = 0; k < seqNum; k++){ lyp[k] = (double *)calloc(itrNum, sizeof(double)); }
-	x = (double *)calloc(seqNum, sizeof(double));
-	for(int k = 0; k < seqNum; k++){ x[k] = unif(mt); }
+	/*--trajectoryの計算-------*/
+	x = (double *)calloc(itrNum, sizeof(double));
+	y = (double *)calloc(itrNum, sizeof(double));
+	z = (double *)calloc(itrNum, sizeof(double));
+	x[0] = inix; y[0] = iniy; z[0] = iniz;
 	
-	for(int k = 0; k < seqNum; k++){ lyp[k][0] = log(abs(df(x[k]))); }
-	itrCnt = 1;
-	//trajectoryの計算
-	for(itrCnt = 1; itrCnt < itrNum; itrCnt++){
-		for(int k = 0; k < seqNum; k++){
-			x[k] = f(x[k]);
-			lyp[k][itrCnt] = (1.0-1.0/(itrCnt+1)) * lyp[k][itrCnt-1] + log(abs(df(x[k])))/(itrCnt+1);
-		}
+	for(int i = 1; i < itrNum; i++){
+		x[i] = x[i-1] + EPS * dx(x[i-1],y[i-1],z[i-1]);
+		y[i] = y[i-1] + EPS * dy(x[i-1],y[i-1],z[i-1]);
+		z[i] = z[i-1] + EPS * dz(x[i-1],y[i-1],z[i-1]);
 	}
+	cout << itrNum << endl;
+	
 //	getchar();
 	
 	/*--Main loop-------*/
@@ -115,13 +170,13 @@ int main(int argc, char * argv[]) {
 	glutCreateWindow("Lyapunov Exponents");
 	glutReshapeFunc(resize);
 	glutDisplayFunc(display);
+	glutMouseFunc(mouse);
 //	glutIdleFunc(idle);
-//	glutTimerFunc(400 , timer , 0);
+	glutTimerFunc(100 , timer , 0);
 	setup();
 	glutMainLoop();
 	
 	
-	for(int i = 0; i < seqNum; i++){ free(lyp[i]); }
-	free(lyp); free(x);
+	free(x); free(y); free(z);
 	return 0;
 }
