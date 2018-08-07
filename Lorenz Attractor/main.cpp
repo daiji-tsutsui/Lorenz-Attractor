@@ -14,7 +14,7 @@
 #define R	28.0
 #define B	8.0/3.0
 #define EPS	0.001
-#define T	100
+#define T	1000
 using namespace std;
 
 random_device rnd;     // 非決定的な乱数生成器
@@ -35,8 +35,12 @@ double *x, *y, *z;
 double inix = 1.0;
 double iniy = 1.0;
 double iniz = 1.0;
-int r = 0;
+double t = 0.0; double t0 = 0.0;
+double s = 0.0; double s0 = 0.0;
+double r = 2.5;
 int cnt = 0;
+int btnFlg = 0;
+double px, py;
 
 double dx(double x1, double y1, double z1){
 	return -P * x1 + P * y1;
@@ -71,39 +75,28 @@ void resize(int width, int height) {
 }
 void timer(int value) {
 	glutPostRedisplay();
-	glutTimerFunc(1 , timer , 0);
+	glutTimerFunc(30 , timer , 0);
 	if(cnt < itrNum) cnt++;
 }
-void mouse(int button, int state, int x, int y)
+void mouse(int button, int state, int cx, int cy)
 {
-	switch (button) {
-		case GLUT_LEFT_BUTTON:
-			printf("left");
-			break;
-		case GLUT_MIDDLE_BUTTON:
-			printf("middle");
-			break;
-		case GLUT_RIGHT_BUTTON:
-			printf("right");
-			break;
-		default:
-			break;
+	if(button == GLUT_LEFT_BUTTON){
+		if(state == GLUT_DOWN){
+			btnFlg = 1;
+			px = cx; py = cy;
+		}else if(state == GLUT_UP){
+			btnFlg = 0;
+			t0 = t;
+			s0 = s;
+		}
 	}
-	
-	printf(" button is ");
-	
-	switch (state) {
-		case GLUT_UP:
-			printf("up");
-			break;
-		case GLUT_DOWN:
-			printf("down");
-			break;
-		default:
-			break;
+}
+void motion(int x, int y){
+	if(btnFlg){
+		t = t0 - 0.005 * (x - px);
+		s = max(min(s0 + 0.005 * (y - py), M_PI/2), -M_PI/2);
+		glutPostRedisplay();
 	}
-	
-	printf(" at (%d, %d)\n", x, y);
 }
 
 /*--Display func-------------------------------------------------------------------------*/
@@ -112,25 +105,34 @@ void display(void){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glLoadIdentity();
-	gluLookAt(0.0, 0.0, 2.5,
+	gluLookAt(r*cos(s)*sin(t), r*sin(s), r*cos(s)*cos(t),
 			  0.0, 0.0, 0.0,
 			  0.0, 1.0, 0.0);
-	glRotated((double)r, 0.0, 1.0, 0.0);
-	if (r >= 360) r = 0;
+//	glRotated(t, 0.0, 1.0, 0.0);
+//	if (t >= 360){ t = 0.0; }else{ t += 2.0; }
 
-	glColor3d(0.0, 0.0, 0.0);	//Black
-//	glutWireTeapot(0.5);
-//	glBegin(GL_LINES);
-//	//x-axis
-//	glVertex2d(-1.0, 0.0);
-//	glVertex2d(1.0, 0.0);
-//	//y-axis
-//	glVertex2d(0.0, -1.0);
-//	glVertex2d(0.0, 1.0);
-//	glEnd();
+	//x-axis
+	glColor3d(1.0, 0.0, 0.0);	//Black
+	glBegin(GL_LINES);
+		glVertex3d(-2.0, 0.0, 0.0);
+		glVertex3d(2.0, 0.0, 0.0);
+	glEnd();
+	//y-axis
+	glColor3d(0.0, 1.0, 0.0);	//Black
+	glBegin(GL_LINES);
+		glVertex3d(0.0, -2.0, 0.0);
+		glVertex3d(0.0, 2.0, 0.0);
+	glEnd();
+	//z-axis
+	glColor3d(.0, 0.0, 1.0);	//Black
+	glBegin(GL_LINES);
+		glVertex3d(0.0, 0.0, -2.0);
+		glVertex3d(0.0, 0.0, 2.0);
+	glEnd();
 	
 	//trajectoryの描画
-	for(int i = 1; i < cnt; i++){
+//	for(int i = 1; i < cnt; i++){
+	for(int i = itrNum*9/10; i < itrNum; i++){
 		glColor3d(0.2, cos((double)i/(double)itrNum), sin((double)i/(double)itrNum));
 		glBegin(GL_LINES);
 			glVertex3d(1.0-2.0*(x[i-1]-xMin)/(xMax-xMin),
@@ -142,7 +144,7 @@ void display(void){
 		glEnd();
 	}
 	
-	glFlush();
+	glutSwapBuffers();
 }
 
 
@@ -166,13 +168,14 @@ int main(int argc, char * argv[]) {
 	/*--Main loop-------*/
 	glutInit(&argc, argv);
 	glutInitWindowSize(winw, winh);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA | GLUT_DEPTH);
-	glutCreateWindow("Lyapunov Exponents");
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+	glutCreateWindow("Lorenz Attractor");
 	glutReshapeFunc(resize);
 	glutDisplayFunc(display);
 	glutMouseFunc(mouse);
+	glutMotionFunc(motion);
 //	glutIdleFunc(idle);
-	glutTimerFunc(100 , timer , 0);
+//	glutTimerFunc(100 , timer , 0);
 	setup();
 	glutMainLoop();
 	
