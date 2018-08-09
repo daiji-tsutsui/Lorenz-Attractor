@@ -14,7 +14,7 @@
 #define R	28.0
 #define B	8.0/3.0
 #define EPS	0.001
-#define T	60
+#define T	50
 using namespace std;
 
 random_device rnd;     // 非決定的な乱数生成器
@@ -23,6 +23,7 @@ uniform_real_distribution<> unif(0.0, 1.0);   // [0.0,1.0]上一様に分布さ�
 normal_distribution<> gauss(0.0, 1.0);   // 平均0.0、標準偏差1.0で分布させる
 
 int lorenzFlg = 2;	// 0: 回転, 1: グリグリ, 2: 墨流し
+int eulerFlg = 1;	//0: Euler法, 1: Runge-Kutta法
 int winh = 800;
 int winw = 1000;
 double xMin = -20.0;
@@ -32,11 +33,11 @@ double yMax = 20.0;
 double zMin = 0.0;
 double zMax = 40.0;
 int itrNum = T / EPS;
-int seqNum = 8000;
+int seqNum = 4000;
 double **x, **y, **z;
-double inix = 1.0;
-double iniy = 1.0;
-double iniz = 1.0;
+double inix = 10.0;
+double iniy = 10.0;
+double iniz = 20.0;
 double t = 0.0; double t0 = 0.0;
 double s = 0.0; double s0 = 0.0;
 double r = 2.5;
@@ -199,18 +200,54 @@ int main(int argc, char * argv[]) {
 		x[k] = (double *)calloc(itrNum, sizeof(double));
 		y[k] = (double *)calloc(itrNum, sizeof(double));
 		z[k] = (double *)calloc(itrNum, sizeof(double));
-		x[k][0] = inix + unif(mt) * 0.001;
-		y[k][0] = iniy + unif(mt) * 0.001;
-		z[k][0] = iniz + unif(mt) * 0.001;
+		x[k][0] = inix; y[k][0] = iniy; z[k][0] = iniz;
+		if(lorenzFlg == 2){
+			x[k][0] += unif(mt) * 0.001;
+			y[k][0] += unif(mt) * 0.001;
+			z[k][0] += unif(mt) * 0.001;
+		}
 	}
 	
-	for(int k = 0; k < seqNum; k++){
-		for(int i = 1; i < itrNum; i++){
-			x[k][i] = x[k][i-1] + EPS * dx(x[k][i-1],y[k][i-1],z[k][i-1]);
-			y[k][i] = y[k][i-1] + EPS * dy(x[k][i-1],y[k][i-1],z[k][i-1]);
-			z[k][i] = z[k][i-1] + EPS * dz(x[k][i-1],y[k][i-1],z[k][i-1]);
+	if(eulerFlg == 0){
+		//Euler法
+		for(int k = 0; k < seqNum; k++){
+			for(int i = 1; i < itrNum; i++){
+				x[k][i] = x[k][i-1] + EPS * dx(x[k][i-1],y[k][i-1],z[k][i-1]);
+				y[k][i] = y[k][i-1] + EPS * dy(x[k][i-1],y[k][i-1],z[k][i-1]);
+				z[k][i] = z[k][i-1] + EPS * dz(x[k][i-1],y[k][i-1],z[k][i-1]);
+			}
+			if(k % 100 == 0) cout << k << " / " << seqNum << endl;
 		}
-		if(k % 100 == 0) cout << k << " / " << seqNum << endl;
+	}else if(eulerFlg == 1){
+		//Runge-Kutta法
+		double kx[3], ky[3], kz[3];
+		double mx[3], my[3], mz[3];
+		for(int k = 0; k < seqNum; k++){
+			for(int i = 1; i < itrNum; i++){
+				kx[0] = dx(x[k][i-1],y[k][i-1],z[k][i-1]);
+				ky[0] = dy(x[k][i-1],y[k][i-1],z[k][i-1]);
+				kz[0] = dz(x[k][i-1],y[k][i-1],z[k][i-1]);
+				mx[0] = x[k][i-1] + 0.5 * EPS * kx[0];
+				my[0] = y[k][i-1] + 0.5 * EPS * ky[0];
+				mz[0] = z[k][i-1] + 0.5 * EPS * kz[0];
+				kx[1] = dx(mx[0],my[0],mz[0]);
+				ky[1] = dy(mx[0],my[0],mz[0]);
+				kz[1] = dz(mx[0],my[0],mz[0]);
+				mx[1] = x[k][i-1] + 0.5 * EPS * kx[1];
+				my[1] = y[k][i-1] + 0.5 * EPS * ky[1];
+				mz[1] = z[k][i-1] + 0.5 * EPS * kz[1];
+				kx[2] = dx(mx[1],my[1],mz[1]);
+				ky[2] = dy(mx[1],my[1],mz[1]);
+				kz[2] = dz(mx[1],my[1],mz[1]);
+				mx[2] = x[k][i-1] + EPS * kx[2];
+				my[2] = y[k][i-1] + EPS * ky[2];
+				mz[2] = z[k][i-1] + EPS * kz[2];
+				x[k][i] = x[k][i-1] + EPS * (kx[0] + 2.0*kx[1] + 2.0*kx[2] + dx(mx[2],my[2],mz[2]))/6.0;
+				y[k][i] = y[k][i-1] + EPS * (ky[0] + 2.0*ky[1] + 2.0*ky[2] + dy(mx[2],my[2],mz[2]))/6.0;
+				z[k][i] = z[k][i-1] + EPS * (kz[0] + 2.0*kz[1] + 2.0*kz[2] + dz(mx[2],my[2],mz[2]))/6.0;
+			}
+			if(k % 100 == 0) cout << k << " / " << seqNum << endl;
+		}
 	}
 	
 //	getchar();
