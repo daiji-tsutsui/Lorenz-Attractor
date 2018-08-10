@@ -17,6 +17,7 @@
 #define T	50
 using namespace std;
 void drawSphere(double x, double y, double z, double r, int div = 5);
+void drawCircle(double x0, double y0, double r, int div = 20);
 
 random_device rnd;     // 非決定的な乱数生成器
 mt19937 mt(rnd());  // メルセンヌ・ツイスタの32ビット版、引数は初期シード
@@ -34,7 +35,7 @@ double yMax = 20.0;
 double zMin = 0.0;
 double zMax = 40.0;
 int itrNum = T / EPS;
-int seqNum = 1000;
+int seqNum = 3000;
 double **x, **y, **z;
 double inix = 10.0;
 double iniy = 10.0;
@@ -62,7 +63,8 @@ void idle(void){
 	glutPostRedisplay();
 }
 void setup(void) {
-	glClearColor(1.0, 0.99, 0.91, 1.0);       //White
+//    glClearColor(1.0, 0.99, 0.91, 1.0);       //Yellow
+    glClearColor(0.0, 0.0, 0.1, 1.0);       //Black
 }
 void resize(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -168,29 +170,35 @@ void display(void){
 							   1.0-2.0*(y[k][i]-yMin)/(yMax-yMin),
 							   1.0-2.0*(z[k][i]-zMin)/(zMax-zMin));
 				glEnd();
-//				drawSphere(1.0-2.0*(10.0-xMin)/(xMax-xMin),
-//						   1.0-2.0*(10.0-yMin)/(yMax-yMin),
-//						   1.0-2.0*(20.0-yMin)/(yMax-yMin), 0.1);
 			}
 		}
+//        glEnable(GL_BLEND);
+//        glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
+//        glColor4d(0.0, 0.1, 1.0, 0.5);
+//        glTranslated(0.0, 1.0, 2.0);
+//        glutSolidSphere(0.1, 10, 5);
 	}else if(lorenzFlg == 2){
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
+        glColor4d(1.0, 1.0, 0.0, 0.3);
 		//particlesの描画
-		glPointSize(3.0);
-		glColor4d(0.0, 0.1, 1.0, 0.5);
-		glBegin(GL_POINTS);
-			for(int k = 0; k < seqNum; k++){
-				glVertex3d(1.0-2.0*(x[k][cnt]-xMin)/(xMax-xMin),
-						   1.0-2.0*(y[k][cnt]-yMin)/(yMax-yMin),
-						   1.0-2.0*(z[k][cnt]-zMin)/(zMax-zMin));
-			}
-		glEnd();
-//		for(int k = 0; k < seqNum; k++){
-//			drawSphere(1.0-2.0*(x[k][cnt]-xMin)/(xMax-xMin),
-//					   1.0-2.0*(y[k][cnt]-yMin)/(yMax-yMin),
-//					   1.0-2.0*(z[k][cnt]-yMin)/(yMax-yMin), 0.05);
-//		}
+//        glPointSize(3.0);
+//        glBegin(GL_POINTS);
+//            for(int k = 0; k < seqNum; k++){
+//                glVertex3d(1.0-2.0*(x[k][cnt]-xMin)/(xMax-xMin),
+//                           1.0-2.0*(y[k][cnt]-yMin)/(yMax-yMin),
+//                           1.0-2.0*(z[k][cnt]-zMin)/(zMax-zMin));
+//            }
+//        glEnd();
+        for(int k = 0; k < seqNum; k++){
+            glTranslated(1.0-2.0*(x[k][cnt]-xMin)/(xMax-xMin),
+                         1.0-2.0*(y[k][cnt]-yMin)/(yMax-yMin),
+                         1.0-2.0*(z[k][cnt]-zMin)/(zMax-zMin));
+            glutSolidSphere(0.005, 10, 5);
+            glTranslated(-1.0+2.0*(x[k][cnt]-xMin)/(xMax-xMin),
+                         -1.0+2.0*(y[k][cnt]-yMin)/(yMax-yMin),
+                         -1.0+2.0*(z[k][cnt]-zMin)/(zMax-zMin));
+        }
 	}
 	
 	glutSwapBuffers();
@@ -288,17 +296,36 @@ int main(int argc, char * argv[]) {
 /*--Other func-------------------------------------------------------------------------*/
 void drawSphere(double x, double y, double z, double r, int div){
 	glBegin(GL_POLYGON);
-	for(int i = 0; i <= div; i++){
-		for(int j = 0; j <= div; j++){
-			glVertex3d(x + r*cos(M_PI*i/div - 0.5*M_PI)*sin(2.0*M_PI*j/div),
-					   y + r*cos(M_PI*i/div - 0.5*M_PI)*cos(2.0*M_PI*j/div),
+    int j = 1;
+    for(int i = 0; i < div; i++){
+        for(int j = 0; j < div * 2; j++){
+			glVertex3d(x + r*cos(M_PI*i/div - 0.5*M_PI)*sin(M_PI*j/div),
+					   y + r*cos(M_PI*i/div - 0.5*M_PI)*cos(M_PI*j/div),
 					   z + r*sin(M_PI*i/div - 0.5*M_PI));
-		}
-	}
+            glVertex3d(x + r*cos(M_PI*(i+1)/div - 0.5*M_PI)*sin(M_PI*j/div),
+                       y + r*cos(M_PI*(i+1)/div - 0.5*M_PI)*cos(M_PI*j/div),
+                       z + r*sin(M_PI*(i+1)/div - 0.5*M_PI));
+            glVertex3d(x + r*cos(M_PI*(i+1)/div - 0.5*M_PI)*sin(M_PI*(j+1)/div),
+                       y + r*cos(M_PI*(i+1)/div - 0.5*M_PI)*cos(M_PI*(j+1)/div),
+                       z + r*sin(M_PI*(i+1)/div - 0.5*M_PI));
+            glVertex3d(x + r*cos(M_PI*i/div - 0.5*M_PI)*sin(M_PI*(j+1)/div),
+                       y + r*cos(M_PI*i/div - 0.5*M_PI)*cos(M_PI*(j+1)/div),
+                       z + r*sin(M_PI*i/div - 0.5*M_PI));
+        }
+    }
 	glEnd();
 }
 
-
+void drawCircle(double x0, double y0, double r, int div){
+    double x, y;
+    glBegin(GL_POLYGON);
+    for (int i=0; i<div; i++) {
+        x = x0 + r * cos(2.0 * M_PI * ((double)i/div));
+        y = y0 + r * sin(2.0 * M_PI * ((double)i/div));
+        glVertex2d(x, y);
+    }
+    glEnd();
+}
 
 
 
