@@ -16,6 +16,7 @@
 #define EPS	0.001
 #define T	50
 using namespace std;
+void drawSphere(double x, double y, double z, double r, int div = 5);
 
 random_device rnd;     // 非決定的な乱数生成器
 mt19937 mt(rnd());  // メルセンヌ・ツイスタの32ビット版、引数は初期シード
@@ -33,7 +34,7 @@ double yMax = 20.0;
 double zMin = 0.0;
 double zMax = 40.0;
 int itrNum = T / EPS;
-int seqNum = 4000;
+int seqNum = 1000;
 double **x, **y, **z;
 double inix = 10.0;
 double iniy = 10.0;
@@ -167,19 +168,29 @@ void display(void){
 							   1.0-2.0*(y[k][i]-yMin)/(yMax-yMin),
 							   1.0-2.0*(z[k][i]-zMin)/(zMax-zMin));
 				glEnd();
+//				drawSphere(1.0-2.0*(10.0-xMin)/(xMax-xMin),
+//						   1.0-2.0*(10.0-yMin)/(yMax-yMin),
+//						   1.0-2.0*(20.0-yMin)/(yMax-yMin), 0.1);
 			}
 		}
 	}else if(lorenzFlg == 2){
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
 		//particlesの描画
 		glPointSize(3.0);
-		glColor3d(0.5, 0.1, 0.1);
+		glColor4d(0.0, 0.1, 1.0, 0.5);
 		glBegin(GL_POINTS);
-				for(int k = 0; k < seqNum; k++){
-					glVertex3d(1.0-2.0*(x[k][cnt]-xMin)/(xMax-xMin),
-							   1.0-2.0*(y[k][cnt]-yMin)/(yMax-yMin),
-							   1.0-2.0*(z[k][cnt]-zMin)/(zMax-zMin));
-				}
+			for(int k = 0; k < seqNum; k++){
+				glVertex3d(1.0-2.0*(x[k][cnt]-xMin)/(xMax-xMin),
+						   1.0-2.0*(y[k][cnt]-yMin)/(yMax-yMin),
+						   1.0-2.0*(z[k][cnt]-zMin)/(zMax-zMin));
+			}
 		glEnd();
+//		for(int k = 0; k < seqNum; k++){
+//			drawSphere(1.0-2.0*(x[k][cnt]-xMin)/(xMax-xMin),
+//					   1.0-2.0*(y[k][cnt]-yMin)/(yMax-yMin),
+//					   1.0-2.0*(z[k][cnt]-yMin)/(yMax-yMin), 0.05);
+//		}
 	}
 	
 	glutSwapBuffers();
@@ -272,3 +283,25 @@ int main(int argc, char * argv[]) {
 	free(x); free(y); free(z);
 	return 0;
 }
+
+
+/*--Other func-------------------------------------------------------------------------*/
+void drawSphere(double x, double y, double z, double r, int div){
+	glBegin(GL_POLYGON);
+	for(int i = 0; i <= div; i++){
+		for(int j = 0; j <= div; j++){
+			glVertex3d(x + r*cos(M_PI*i/div - 0.5*M_PI)*sin(2.0*M_PI*j/div),
+					   y + r*cos(M_PI*i/div - 0.5*M_PI)*cos(2.0*M_PI*j/div),
+					   z + r*sin(M_PI*i/div - 0.5*M_PI));
+		}
+	}
+	glEnd();
+}
+
+
+
+
+
+
+
+
