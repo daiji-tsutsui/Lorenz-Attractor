@@ -10,11 +10,13 @@
 #include <OpenGL/OpenGL.h>
 #include <GLUT/GLUT.h>
 #include <random>
+#include "make_png.h"
+
 #define P	10.0
 #define R	28.0
 #define B	8.0/3.0
 #define EPS	0.001
-#define T	50
+#define T	10
 using namespace std;
 void drawSphere(double x, double y, double z, double r, int div = 5);
 void drawCircle(double x0, double y0, double r, int div = 20);
@@ -172,11 +174,6 @@ void display(void){
 				glEnd();
 			}
 		}
-//        glEnable(GL_BLEND);
-//        glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
-//        glColor4d(0.0, 0.1, 1.0, 0.5);
-//        glTranslated(0.0, 1.0, 2.0);
-//        glutSolidSphere(0.1, 10, 5);
 	}else if(lorenzFlg == 2){
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
@@ -199,6 +196,9 @@ void display(void){
                          -1.0+2.0*(y[k][cnt]-yMin)/(yMax-yMin),
                          -1.0+2.0*(z[k][cnt]-zMin)/(zMax-zMin));
         }
+//        char filepath[200];
+//        sprintf(filepath, "/Users/daiji/Documents/C/Lorenz-Attractor/Lorenz Attractor/images/output%06d.png", cnt);
+//        capture(filepath);
 	}
 	
 	glutSwapBuffers();
@@ -296,7 +296,6 @@ int main(int argc, char * argv[]) {
 /*--Other func-------------------------------------------------------------------------*/
 void drawSphere(double x, double y, double z, double r, int div){
 	glBegin(GL_POLYGON);
-    int j = 1;
     for(int i = 0; i < div; i++){
         for(int j = 0; j < div * 2; j++){
 			glVertex3d(x + r*cos(M_PI*i/div - 0.5*M_PI)*sin(M_PI*j/div),
